@@ -127,15 +127,30 @@ def get_dashboard_stats(db: Session = Depends(get_db)):
     total_tasks = db.query(Task).count()
     total_completed_tasks = db.query(Task).filter(Task.is_completed == True).count()
     
-    # 计算总时长和总收款
+    # 计算总时长和总收款（显示用）
     total_duration = 0.0
     total_received_amount = 0.0
+    
+    # 计算有效项目的时长和收款（用于计算整体时薪）
+    # 有效项目定义：时长 >= 最小阈值 且 已收款 > 0
+    valid_total_duration = 0.0
+    valid_total_received = 0.0
+    
     recent_projects = []
     
     for project in projects:
         stats = calculate_project_stats(db, project)
-        total_duration += stats["total_duration"]
-        total_received_amount += project.received_amount or 0.0
+        project_duration = stats["total_duration"]
+        project_received = project.received_amount or 0.0
+        
+        # 累加所有项目的时长和收款（用于显示）
+        total_duration += project_duration
+        total_received_amount += project_received
+        
+        # 只累加有效项目的时长和收款（用于计算整体时薪）
+        if project_duration >= MIN_HOURS_FOR_CALCULATION and project_received > 0:
+            valid_total_duration += project_duration
+            valid_total_received += project_received
         
         # 构建项目响应
         project_response = ProjectResponse(
@@ -156,10 +171,10 @@ def get_dashboard_stats(db: Session = Depends(get_db)):
     recent_projects.sort(key=lambda x: x.updated_at, reverse=True)
     recent_projects = recent_projects[:5]
     
-    # 计算整体时薪
+    # 计算整体时薪（只使用有效项目的数据）
     overall_hourly_rate = None
-    if total_duration > 0:
-        overall_hourly_rate = total_received_amount / total_duration
+    if valid_total_duration > 0 and valid_total_received > 0:
+        overall_hourly_rate = valid_total_received / valid_total_duration
     
     return DashboardStats(
         total_projects=total_projects,

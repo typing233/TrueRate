@@ -1015,6 +1015,29 @@
             }
         }
 
+        // 解析 UTC 时间字符串（确保后端返回的时间被正确解析为 UTC 时间）
+        function parseUTCTime(timeString) {
+            // 如果已经有时区标记（Z 或 +/-），直接解析
+            if (timeString.endsWith('Z') || timeString.includes('+') || (timeString.match(/-/g) || []).length > 2) {
+                return new Date(timeString);
+            }
+            // 否则，添加 'Z' 标记明确表示这是 UTC 时间
+            return new Date(timeString + 'Z');
+        }
+
+        // 格式化本地时间显示（将 UTC 时间转换为本地时间显示）
+        function formatLocalTime(utcTimeString) {
+            const date = parseUTCTime(utcTimeString);
+            return date.toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+
         // 渲染运行中的计时器
         function renderRunningTimers(timers) {
             const container = document.getElementById('running-timers');
@@ -1025,7 +1048,7 @@
             }
             
             container.innerHTML = timers.map(timer => {
-                const startTime = new Date(timer.start_time);
+                const startTime = parseUTCTime(timer.start_time);
                 const elapsed = Math.floor((Date.now() - startTime.getTime()) / 1000);
                 
                 return `
@@ -1033,7 +1056,7 @@
                         <div class="flex justify-between items-center">
                             <div>
                                 <h4 class="font-semibold text-gray-800 timer-pulse">⏱ 计时中...</h4>
-                                <p class="text-sm text-gray-500">开始时间: ${startTime.toLocaleString('zh-CN')}</p>
+                                <p class="text-sm text-gray-500">开始时间: ${formatLocalTime(timer.start_time)}</p>
                                 <p class="text-lg font-bold text-green-600 mt-1" id="timer-display-${timer.id}">${formatElapsedTime(elapsed)}</p>
                             </div>
                             <button onclick="stopTimerById(${timer.id})" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
@@ -1049,7 +1072,7 @@
         function updateRunningTimersDisplay() {
             document.querySelectorAll('[data-timer-id]').forEach(timerElement => {
                 const timerId = timerElement.dataset.timerId;
-                const startTime = new Date(timerElement.dataset.startTime);
+                const startTime = parseUTCTime(timerElement.dataset.startTime);
                 const elapsed = Math.floor((Date.now() - startTime.getTime()) / 1000);
                 
                 const displayElement = document.getElementById(`timer-display-${timerId}`);
