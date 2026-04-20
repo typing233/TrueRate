@@ -1,8 +1,63 @@
-from pydantic import BaseModel, Field
-from datetime import datetime
+from pydantic import BaseModel, Field, EmailStr
+from datetime import datetime, date
 from typing import Optional, List
 
-# 时间记录相关的 Pydantic 模型
+class UserBase(BaseModel):
+    username: str = Field(..., min_length=3, max_length=50)
+    email: EmailStr
+    full_name: Optional[str] = Field(None, max_length=100)
+
+class UserCreate(UserBase):
+    password: str = Field(..., min_length=6, max_length=100)
+
+class UserLogin(BaseModel):
+    username: str
+    password: str
+
+class UserResponse(UserBase):
+    id: int
+    is_active: bool
+    is_superuser: bool
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserResponse
+
+class TokenPayload(BaseModel):
+    sub: Optional[int] = None
+    exp: Optional[datetime] = None
+
+class TagBase(BaseModel):
+    name: str = Field(..., min_length=1, max_length=50)
+    color: Optional[str] = Field("#6366f1", min_length=7, max_length=7)
+    description: Optional[str] = Field(None, max_length=200)
+
+class TagCreate(TagBase):
+    pass
+
+class TagUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=50)
+    color: Optional[str] = Field(None, min_length=7, max_length=7)
+    description: Optional[str] = Field(None, max_length=200)
+
+class TagResponse(TagBase):
+    id: int
+    owner_id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class ProjectTagsUpdate(BaseModel):
+    tag_ids: List[int] = []
+
 class TimeEntryBase(BaseModel):
     task_id: Optional[int] = None
     description: Optional[str] = None
@@ -21,13 +76,13 @@ class TimeEntryResponse(TimeEntryBase):
     duration: float
     is_running: bool
     project_id: int
+    owner_id: int
     created_at: datetime
     updated_at: datetime
 
     class Config:
         from_attributes = True
 
-# 任务相关的 Pydantic 模型
 class TaskBase(BaseModel):
     title: str = Field(..., min_length=1, max_length=255)
     description: Optional[str] = None
@@ -44,6 +99,7 @@ class TaskResponse(TaskBase):
     id: int
     is_completed: bool
     project_id: int
+    owner_id: int
     created_at: datetime
     updated_at: datetime
     time_entries: List[TimeEntryResponse] = []
@@ -51,7 +107,6 @@ class TaskResponse(TaskBase):
     class Config:
         from_attributes = True
 
-# 项目相关的 Pydantic 模型
 class ProjectBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     description: Optional[str] = None
@@ -60,7 +115,7 @@ class ProjectBase(BaseModel):
     received_amount: Optional[float] = Field(0.0, ge=0)
 
 class ProjectCreate(ProjectBase):
-    pass
+    tag_ids: Optional[List[int]] = []
 
 class ProjectUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=255)
@@ -71,9 +126,11 @@ class ProjectUpdate(BaseModel):
 
 class ProjectResponse(ProjectBase):
     id: int
+    owner_id: int
     created_at: datetime
     updated_at: datetime
     tasks: List[TaskResponse] = []
+    tags: List[TagResponse] = []
     total_duration: float = 0.0
     actual_hourly_rate: Optional[float] = None
     profit_status: Optional[str] = None
@@ -82,7 +139,6 @@ class ProjectResponse(ProjectBase):
     class Config:
         from_attributes = True
 
-# 仪表盘统计数据模型
 class DashboardStats(BaseModel):
     total_projects: int
     total_tasks: int
@@ -91,6 +147,49 @@ class DashboardStats(BaseModel):
     total_received_amount: float
     overall_hourly_rate: Optional[float] = None
     recent_projects: List[ProjectResponse] = []
+
+    class Config:
+        from_attributes = True
+
+class PeriodStatsRequest(BaseModel):
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+    period_type: Optional[str] = Field("week", description="可选值: week, month, quarter, year, custom")
+
+class HourlyRateTrendItem(BaseModel):
+    date: str
+    hourly_rate: Optional[float]
+    total_duration: float
+    total_received: float
+
+class ProjectStatsItem(BaseModel):
+    project_id: int
+    project_name: str
+    total_duration: float
+    total_received: float
+    hourly_rate: Optional[float]
+
+class TagStatsItem(BaseModel):
+    tag_id: int
+    tag_name: str
+    tag_color: str
+    total_duration: float
+    total_received: float
+    project_count: int
+
+class PeriodStatsResponse(BaseModel):
+    start_date: date
+    end_date: date
+    period_type: str
+    total_duration: float
+    total_received_amount: float
+    overall_hourly_rate: Optional[float]
+    total_projects: int
+    total_tasks: int
+    total_completed_tasks: int
+    hourly_rate_trend: List[HourlyRateTrendItem]
+    project_stats: List[ProjectStatsItem]
+    tag_stats: List[TagStatsItem]
 
     class Config:
         from_attributes = True
