@@ -10,9 +10,20 @@ import os
 from io import BytesIO
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Table, TableStyle, Spacer
 from reportlab.lib.units import inch
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+
+# 注册中文字体
+CHINESE_FONT_PATH = "/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf"
+if os.path.exists(CHINESE_FONT_PATH):
+    pdfmetrics.registerFont(TTFont('ChineseFont', CHINESE_FONT_PATH))
+    DEFAULT_FONT = 'ChineseFont'
+else:
+    # 如果没有中文字体，使用默认字体
+    DEFAULT_FONT = 'Helvetica'
 
 from database import engine, get_db, Base
 from models import Project, Task, TimeEntry
@@ -54,6 +65,8 @@ def calculate_project_duration(db: Session, project_id: int) -> float:
     return total_duration
 
 # 辅助函数：计算项目真实时薪和盈亏状态
+MIN_HOURS_FOR_CALCULATION = 0.01  # 最小时长阈值：0.01 小时 = 36 秒
+
 def calculate_project_stats(db: Session, project: Project) -> dict:
     total_duration = calculate_project_duration(db, project.id)
     received_amount = project.received_amount or 0.0
@@ -62,7 +75,8 @@ def calculate_project_stats(db: Session, project: Project) -> dict:
     profit_status = None
     profit_amount = None
     
-    if total_duration > 0 and received_amount > 0:
+    # 只有当总时长大于等于最小阈值且已收款金额大于 0 时，才计算真实时薪
+    if total_duration >= MIN_HOURS_FOR_CALCULATION and received_amount > 0:
         actual_hourly_rate = received_amount / total_duration
         
         if project.hourly_rate is not None:
@@ -82,6 +96,10 @@ def calculate_project_stats(db: Session, project: Project) -> dict:
         else:
             profit_status = "已完成"
             profit_amount = received_amount
+    elif total_duration > 0 and received_amount > 0:
+        # 时长不足最小阈值时，显示提示信息
+        profit_status = "时长不足"
+        profit_amount = None
     
     return {
         "total_duration": total_duration,
@@ -594,10 +612,29 @@ def export_project_pdf(project_id: int, db: Session = Depends(get_db)):
     doc = SimpleDocTemplate(buffer, pagesize=letter)
     elements = []
     
+    # 创建支持中文的样式
     styles = getSampleStyleSheet()
     
+    # 标题样式（支持中文）
+    title_style = ParagraphStyle(
+        'ChineseTitle',
+        parent=styles['Title'],
+        fontName=DEFAULT_FONT,
+        fontSize=24,
+        spaceAfter=12
+    )
+    
+    # 标题2样式（支持中文）
+    heading2_style = ParagraphStyle(
+        'ChineseHeading2',
+        parent=styles['Heading2'],
+        fontName=DEFAULT_FONT,
+        fontSize=18,
+        spaceAfter=12
+    )
+    
     # 标题
-    title = Paragraph(f"项目账单: {project.name}", styles['Title'])
+    title = Paragraph(f"项目账单: {project.name}", title_style)
     elements.append(title)
     elements.append(Spacer(1, 12))
     
@@ -628,7 +665,8 @@ def export_project_pdf(project_id: int, db: Session = Depends(get_db)):
         ('BACKGROUND', (0, 0), (0, -1), colors.lightgrey),
         ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTNAME', (0, 0), (-1, -1), DEFAULT_FONT),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
         ('BACKGROUND', (0, 1), (-1, -1), colors.whitesmoke),
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
@@ -638,7 +676,7 @@ def export_project_pdf(project_id: int, db: Session = Depends(get_db)):
     
     # 任务列表
     if project.tasks:
-        tasks_title = Paragraph("任务列表", styles['Heading2'])
+        tasks_title = Paragraph("任务列表", heading2_style)
         elements.append(tasks_title)
         elements.append(Spacer(1, 12))
         
@@ -658,7 +696,8 @@ def export_project_pdf(project_id: int, db: Session = Depends(get_db)):
             ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTNAME', (0, 0), (-1, -1), DEFAULT_FONT),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
             ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
             ('BACKGROUND', (0, 1), (-1, -1), colors.whitesmoke),
             ('GRID', (0, 0), (-1, -1), 1, colors.black),
@@ -668,7 +707,7 @@ def export_project_pdf(project_id: int, db: Session = Depends(get_db)):
     
     # 时间记录
     if project.time_entries:
-        time_entries_title = Paragraph("时间记录", styles['Heading2'])
+        time_entries_title = Paragraph("时间记录", heading2_style)
         elements.append(time_entries_title)
         elements.append(Spacer(1, 12))
         
@@ -690,7 +729,8 @@ def export_project_pdf(project_id: int, db: Session = Depends(get_db)):
             ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTNAME', (0, 0), (-1, -1), DEFAULT_FONT),
+            ('FONTSIZE', (0, 0), (-1, -1), 8),
             ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
             ('BACKGROUND', (0, 1), (-1, -1), colors.whitesmoke),
             ('GRID', (0, 0), (-1, -1), 1, colors.black),
