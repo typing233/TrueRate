@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrueRate - 极简项目管理与财务核算工具</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .card-shadow {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .hover-scale {
+            transition: transform 0.2s ease;
+        }
+        .hover-scale:hover {
+            transform: scale(1.02);
+        }
+        .timer-pulse {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .modal {
+            display: none;
+        }
+        .modal.active {
+            display: flex;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- 导航栏 -->
+    <nav class="gradient-bg text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <h1 class="text-2xl font-bold">TrueRate</h1>
+                    </div>
+                    <div class="hidden md:block ml-10">
+                        <div class="flex items-baseline space-x-4">
+                            <button onclick="showSection('dashboard')" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-white bg-white bg-opacity-20">仪表盘</button>
+                            <button onclick="showSection('projects')" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-white hover:bg-white hover:bg-opacity-20">项目管理</button>
+                            <button onclick="showSection('timers')" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-white hover:bg-white hover:bg-opacity-20">计时器</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主内容区 -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- 仪表盘部分 -->
+        <section id="dashboard" class="section">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-3xl font-bold text-gray-800">仪表盘</h2>
+                <button onclick="refreshDashboard()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors">
+                    刷新数据
+                </button>
+            </div>
+            
+            <!-- 统计卡片 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white rounded-lg p-6 card-shadow hover-scale">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-full bg-indigo-100 text-indigo-600">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-500">总项目数</p>
+                            <p id="total-projects" class="text-2xl font-semibold text-gray-900">0</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-lg p-6 card-shadow hover-scale">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-full bg-green-100 text-green-600">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-500">完成任务/总任务</p>
+                            <p id="tasks-stats" class="text-2xl font-semibold text-gray-900">0/0</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-lg p-6 card-shadow hover-scale">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-full bg-yellow-100 text-yellow-600">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-500">总工作时长</p>
+                            <p id="total-duration" class="text-2xl font-semibold text-gray-900">0 小时</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-lg p-6 card-shadow hover-scale">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-full bg-red-100 text-red-600">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-500">总收款金额</p>
+                            <p id="total-received" class="text-2xl font-semibold text-gray-900">¥0</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 整体时薪 -->
+            <div class="bg-white rounded-lg p-6 card-shadow mb-8">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">整体统计</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 mb-2">整体时薪</p>
+                        <p id="overall-hourly-rate" class="text-3xl font-bold text-indigo-600">¥0 / 小时</p>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 mb-2">运行中的计时器</p>
+                        <p id="running-timers-count" class="text-3xl font-bold text-green-600">0 个</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 最近项目 -->
+            <div class="bg-white rounded-lg p-6 card-shadow">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">最近项目</h3>
+                <div id="recent-projects" class="space-y-4">
+                    <p class="text-gray-500 text-center py-8">暂无项目，请先创建项目</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 项目管理部分 -->
+        <section id="projects" class="section hidden">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-3xl font-bold text-gray-800">项目管理</h2>
+                <button onclick="openCreateProjectModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
+                    新建项目
+                </button>
+            </div>
+            
+            <div id="projects-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <p class="text-gray-500 text-center py-8 col-span-full">暂无项目，请点击"新建项目"创建您的第一个项目</p>
+            </div>
+        </section>
+
+        <!-- 计时器部分 -->
+        <section id="timers" class="section hidden">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-3xl font-bold text-gray-800">计时器</h2>
+            </div>
+            
+            <!-- 运行中的计时器 -->
+            <div class="bg-white rounded-lg p-6 card-shadow mb-8">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">运行中的计时器</h3>
+                <div id="running-timers" class="space-y-4">
+                    <p class="text-gray-500 text-center py-8">暂无运行中的计时器</p>
+                </div>
+            </div>
+            
+            <!-- 任务列表 -->
+            <div class="bg-white rounded-lg p-6 card-shadow">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">选择任务开始计时</h3>
+                <div id="tasks-for-timer" class="space-y-4">
+                    <p class="text-gray-500 text-center py-8">暂无任务，请先创建项目和任务</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 创建项目模态框 -->
+    <div id="create-project-modal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+            <h3 class="text-2xl font-bold text-gray-800 mb-6">创建新项目</h3>
+            <form id="create-project-form" onsubmit="createProject(event)">
+                <div class="mb-4">
+                    <label for="project-name" class="block text-sm font-medium text-gray-700 mb-2">项目名称 *</label>
+                    <input type="text" id="project-name" name="name" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                
+                <div class="mb-4">
+                    <label for="project-description" class="block text-sm font-medium text-gray-700 mb-2">项目描述</label>
+                    <textarea id="project-description" name="description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label for="project-budget" class="block text-sm font-medium text-gray-700 mb-2">总预算 (¥)</label>
+                        <input type="number" id="project-budget" name="budget" min="0" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label for="project-hourly-rate" class="block text-sm font-medium text-gray-700 mb-2">时薪标准 (¥/小时)</label>
+                        <input type="number" id="project-hourly-rate" name="hourly_rate" min="0" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <label for="project-received-amount" class="block text-sm font-medium text-gray-700 mb-2">已收款金额 (¥)</label>
+                    <input type="number" id="project-received-amount" name="received_amount" min="0" step="0.01" value="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeModal('create-project-modal')" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">取消</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">创建</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 编辑项目模态框 -->
+    <div id="edit-project-modal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+            <h3 class="text-2xl font-bold text-gray-800 mb-6">编辑项目</h3>
+            <form id="edit-project-form" onsubmit="updateProject(event)">
+                <input type="hidden" id="edit-project-id">
+                <div class="mb-4">
+                    <label for="edit-project-name" class="block text-sm font-medium text-gray-700 mb-2">项目名称 *</label>
+                    <input type="text" id="edit-project-name" name="name" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                
+                <div class="mb-4">
+                    <label for="edit-project-description" class="block text-sm font-medium text-gray-700 mb-2">项目描述</label>
+                    <textarea id="edit-project-description" name="description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label for="edit-project-budget" class="block text-sm font-medium text-gray-700 mb-2">总预算 (¥)</label>
+                        <input type="number" id="edit-project-budget" name="budget" min="0" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label for="edit-project-hourly-rate" class="block text-sm font-medium text-gray-700 mb-2">时薪标准 (¥/小时)</label>
+                        <input type="number" id="edit-project-hourly-rate" name="hourly_rate" min="0" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <label for="edit-project-received-amount" class="block text-sm font-medium text-gray-700 mb-2">已收款金额 (¥)</label>
+                    <input type="number" id="edit-project-received-amount" name="received_amount" min="0" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeModal('edit-project-modal')" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">取消</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 创建任务模态框 -->
+    <div id="create-task-modal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+            <h3 class="text-2xl font-bold text-gray-800 mb-6">创建新任务</h3>
+            <form id="create-task-form" onsubmit="createTask(event)">
+                <input type="hidden" id="create-task-project-id">
+                <div class="mb-4">
+                    <label for="task-title" class="block text-sm font-medium text-gray-700 mb-2">任务名称 *</label>
+                    <input type="text" id="task-title" name="title" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                
+                <div class="mb-6">
+                    <label for="task-description" class="block text-sm font-medium text-gray-700 mb-2">任务描述</label>
+                    <textarea id="task-description" name="description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeModal('create-task-modal')" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">取消</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">创建</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 项目详情模态框 -->
+    <div id="project-detail-modal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50 overflow-y-auto">
+        <div class="bg-white rounded-lg p-8 max-w-4xl w-full mx-4 my-8">
+            <div class="flex justify-between items-center mb-6">
+                <h3 id="project-detail-name" class="text-2xl font-bold text-gray-800">项目详情</h3>
+                <div class="flex space-x-2">
+                    <button onclick="exportProjectPDF()" class="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                        </svg>
+                        导出 PDF
+                    </button>
+                    <button onclick="closeModal('project-detail-modal')" class="text-gray-500 hover:text-gray-700">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 项目统计 -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <p class="text-sm text-gray-500">总工作时长</p>
+                    <p id="project-detail-duration" class="text-xl font-semibold text-gray-900">0 小时</p>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <p class="text-sm text-gray-500">真实时薪</p>
+                    <p id="project-detail-hourly-rate" class="text-xl font-semibold text-gray-900">¥0 / 小时</p>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <p class="text-sm text-gray-500">盈亏状态</p>
+                    <p id="project-detail-profit-status" class="text-xl font-semibold text-gray-900">-</p>
+                </div>
+            </div>
+            
+            <!-- 任务列表 -->
+            <div class="mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h4 class="text-lg font-semibold text-gray-800">任务列表</h4>
+                    <button onclick="openCreateTaskForProject()" class="px-3 py-1 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 flex items-center">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        添加任务
+                    </button>
+                </div>
+                <div id="project-detail-tasks" class="space-y-3">
+                    <p class="text-gray-500 text-center py-4">暂无任务</p>
+                </div>
+            </div>
+            
+            <!-- 时间记录 -->
+            <div>
+                <h4 class="text-lg font-semibold text-gray-800 mb-4">时间记录</h4>
+                <div id="project-detail-time-entries" class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">开始时间</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">结束时间</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">时长</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">状态</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">描述</th>
+                            </tr>
+                        </thead>
+                        <tbody id="time-entries-table-body" class="bg-white divide-y divide-gray-200">
+                            <tr>
+                                <td colspan="5" class="px-4 py-4 text-center text-gray-500">暂无时间记录</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = '';
+        let currentProjectId = null;
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            refreshDashboard();
+            loadProjects();
+            loadTasksForTimer();
+            setInterval(updateRunningTimersDisplay, 1000);
+        });
+
+        // 显示不同部分
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.add('hidden');
+            });
+            document.getElementById(sectionId).classList.remove('hidden');
+            
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('bg-white', 'bg-opacity-20');
+                link.classList.add('hover:bg-white', 'hover:bg-opacity-20');
+            });
+            
+            event.target.classList.remove('hover:bg-white', 'hover:bg-opacity-20');
+            event.target.classList.add('bg-white', 'bg-opacity-20');
+        }
+
+        // 刷新仪表盘
+        async function refreshDashboard() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/dashboard`);
+                const data = await response.json();
+                
+                document.getElementById('total-projects').textContent = data.total_projects;
+                document.getElementById('tasks-stats').textContent = `${data.total_completed_tasks}/${data.total_tasks}`;
+                document.getElementById('total-duration').textContent = `${data.total_duration.toFixed(2)} 小时`;
+                document.getElementById('total-received').textContent = `¥${data.total_received_amount.toFixed(2)}`;
+                
+                if (data.overall_hourly_rate) {
+                    document.getElementById('overall-hourly-rate').textContent = `¥${data.overall_hourly_rate.toFixed(2)} / 小时`;
+                } else {
+                    document.getElementById('overall-hourly-rate').textContent = '暂无数据';
+                }
+                
+                // 加载运行中的计时器数量
+                const timersResponse = await fetch(`${API_BASE_URL}/api/timer/running/`);
+                const runningTimers = await timersResponse.json();
+                document.getElementById('running-timers-count').textContent = `${runningTimers.length} 个`;
+                
+                // 显示最近项目
+                renderRecentProjects(data.recent_projects);
+                
+            } catch (error) {
+                console.error('刷新仪表盘失败:', error);
+            }
+        }
+
+        // 渲染最近项目
+        function renderRecentProjects(projects) {
+            const container = document.getElementById('recent-projects');
+            
+            if (projects.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-8">暂无项目，请先创建项目</p>';
+                return;
+            }
+            
+            container.innerHTML = projects.map(project => `
+                <div class="bg-gray-50 rounded-lg p-4 flex justify-between items-center hover-scale">
+                    <div>
+                        <h4 class="font-semibold text-gray-800">${project.name}</h4>
+                        <p class="text-sm text-gray-500">总时长: ${project.total_duration.toFixed(2)} 小时</p>
+                        ${project.actual_hourly_rate ? `<p class="text-sm text-indigo-600">真实时薪: ¥${project.actual_hourly_rate.toFixed(2)}/小时</p>` : ''}
+                    </div>
+                    <div class="text-right">
+                        ${project.profit_status ? `<span class="inline-block px-2 py-1 rounded text-xs font-medium ${project.profit_status.includes('盈利') || project.profit_status.includes('超出') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">${project.profit_status}</span>` : ''}
+                        <p class="text-sm text-gray-500 mt-1">已收款: ¥${project.received_amount.toFixed(2)}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 加载项目列表
+        async function loadProjects() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/projects/`);
+                const projects = await response.json();
+                renderProjects(projects);
+            } catch (error) {
+                console.error('加载项目列表失败:', error);
+            }
+        }
+
+        // 渲染项目列表
+        function renderProjects(projects) {
+            const container = document.getElementById('projects-list');
+            
+            if (projects.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-8 col-span-full">暂无项目，请点击"新建项目"创建您的第一个项目</p>';
+                return;
+            }
+            
+            container.innerHTML = projects.map(project => `
+                <div class="bg-white rounded-lg p-6 card-shadow hover-scale">
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="text-xl font-semibold text-gray-800">${project.name}</h3>
+                        <div class="flex space-x-2">
+                            <button onclick="viewProjectDetail(${project.id})" class="text-indigo-600 hover:text-indigo-800" title="查看详情">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                </svg>
+                            </button>
+                            <button onclick="openEditProjectModal(${project.id})" class="text-blue-600 hover:text-blue-800" title="编辑">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                </svg>
+                            </button>
+                            <button onclick="deleteProject(${project.id})" class="text-red-600 hover:text-red-800" title="删除">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    ${project.description ? `<p class="text-gray-600 text-sm mb-4">${project.description}</p>` : ''}
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <p class="text-xs text-gray-500">预算</p>
+                            <p class="text-sm font-medium">${project.budget ? `¥${project.budget.toFixed(2)}` : '未设置'}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">时薪标准</p>
+                            <p class="text-sm font-medium">${project.hourly_rate ? `¥${project.hourly_rate.toFixed(2)}/小时` : '未设置'}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-50 rounded-lg p-3">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <p class="text-xs text-gray-500">总时长</p>
+                                <p class="text-sm font-medium">${project.total_duration.toFixed(2)} 小时</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-xs text-gray-500">已收款</p>
+                                <p class="text-sm font-medium">¥${project.received_amount.toFixed(2)}</p>
+                            </div>
+                        </div>
+                        ${project.actual_hourly_rate ? `
+                        <div class="mt-2 pt-2 border-t border-gray-200">
+                            <p class="text-xs text-gray-500">真实时薪</p>
+                            <p class="text-sm font-semibold text-indigo-600">¥${project.actual_hourly_rate.toFixed(2)}/小时</p>
+                        </div>
+                        ` : ''}
+                        ${project.profit_status ? `
+                        <div class="mt-2">
+                            <span class="inline-block px-2 py-1 rounded text-xs font-medium ${project.profit_status.includes('盈利') || project.profit_status.includes('超出') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">${project.profit_status}</span>
+                            ${project.profit_amount !== null ? `<span class="text-xs text-gray-500 ml-2">${project.profit_amount >= 0 ? '+' : ''}¥${project.profit_amount.toFixed(2)}</span>` : ''}
+                        </div>
+                        ` : ''}
+                    </div>
+                    
+                    <div class="mt-4">
+                        <button onclick="openCreateTaskModal(${project.id})" class="w-full py-2 border border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50 text-sm font-medium">
+                            + 添加任务
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 打开创建项目模态框
+        function openCreateProjectModal() {
+            document.getElementById('create-project-modal').classList.add('active');
+        }
+
+        // 打开编辑项目模态框
+        async function openEditProjectModal(projectId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}`);
+                const project = await response.json();
+                
+                document.getElementById('edit-project-id').value = project.id;
+                document.getElementById('edit-project-name').value = project.name;
+                document.getElementById('edit-project-description').value = project.description || '';
+                document.getElementById('edit-project-budget').value = project.budget || '';
+                document.getElementById('edit-project-hourly-rate').value = project.hourly_rate || '';
+                document.getElementById('edit-project-received-amount').value = project.received_amount;
+                
+                document.getElementById('edit-project-modal').classList.add('active');
+            } catch (error) {
+                console.error('获取项目详情失败:', error);
+                alert('获取项目详情失败');
+            }
+        }
+
+        // 打开创建任务模态框
+        function openCreateTaskModal(projectId) {
+            document.getElementById('create-task-project-id').value = projectId;
+            document.getElementById('create-task-modal').classList.add('active');
+        }
+
+        // 为当前项目打开创建任务模态框
+        function openCreateTaskForProject() {
+            if (currentProjectId) {
+                openCreateTaskModal(currentProjectId);
+            }
+        }
+
+        // 关闭模态框
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        // 创建项目
+        async function createProject(event) {
+            event.preventDefault();
+            
+            const formData = {
+                name: document.getElementById('project-name').value,
+                description: document.getElementById('project-description').value || null,
+                budget: document.getElementById('project-budget').value ? parseFloat(document.getElementById('project-budget').value) : null,
+                hourly_rate: document.getElementById('project-hourly-rate').value ? parseFloat(document.getElementById('project-hourly-rate').value) : null,
+                received_amount: parseFloat(document.getElementById('project-received-amount').value) || 0
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/projects/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                if (response.ok) {
+                    closeModal('create-project-modal');
+                    document.getElementById('create-project-form').reset();
+                    refreshDashboard();
+                    loadProjects();
+                } else {
+                    const error = await response.json();
+                    alert(`创建项目失败: ${error.detail}`);
+                }
+            } catch (error) {
+                console.error('创建项目失败:', error);
+                alert('创建项目失败');
+            }
+        }
+
+        // 更新项目
+        async function updateProject(event) {
+            event.preventDefault();
+            
+            const projectId = document.getElementById('edit-project-id').value;
+            const formData = {};
+            
+            const name = document.getElementById('edit-project-name').value;
+            if (name) formData.name = name;
+            
+            const description = document.getElementById('edit-project-description').value;
+            formData.description = description || null;
+            
+            const budget = document.getElementById('edit-project-budget').value;
+            formData.budget = budget ? parseFloat(budget) : null;
+            
+            const hourlyRate = document.getElementById('edit-project-hourly-rate').value;
+            formData.hourly_rate = hourlyRate ? parseFloat(hourlyRate) : null;
+            
+            const receivedAmount = document.getElementById('edit-project-received-amount').value;
+            formData.received_amount = parseFloat(receivedAmount) || 0;
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                if (response.ok) {
+                    closeModal('edit-project-modal');
+                    refreshDashboard();
+                    loadProjects();
+                    if (currentProjectId == projectId) {
+                        viewProjectDetail(projectId);
+                    }
+                } else {
+                    const error = await response.json();
+                    alert(`更新项目失败: ${error.detail}`);
+                }
+            } catch (error) {
+                console.error('更新项目失败:', error);
+                alert('更新项目失败');
+            }
+        }
+
+        // 删除项目
+        async function deleteProject(projectId) {
+            if (!confirm('确定要删除这个项目吗？相关的任务和时间记录也会被删除。')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    refreshDashboard();
+                    loadProjects();
+                } else {
+                    const error = await response.json();
+                    alert(`删除项目失败: ${error.detail}`);
+                }
+            } catch (error) {
+                console.error('删除项目失败:', error);
+                alert('删除项目失败');
+            }
+        }
+
+        // 创建任务
+        async function createTask(event) {
+            event.preventDefault();
+            
+            const projectId = document.getElementById('create-task-project-id').value;
+            const formData = {
+                title: document.getElementById('task-title').value,
+                description: document.getElementById('task-description').value || null,
+                project_id: parseInt(projectId)
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/tasks/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                if (response.ok) {
+                    closeModal('create-task-modal');
+                    document.getElementById('create-task-form').reset();
+                    refreshDashboard();
+                    loadProjects();
+                    loadTasksForTimer();
+                    if (currentProjectId == projectId) {
+                        viewProjectDetail(projectId);
+                    }
+                } else {
+                    const error = await response.json();
+                    alert(`创建任务失败: ${error.detail}`);
+                }
+            } catch (error) {
+                console.error('创建任务失败:', error);
+                alert('创建任务失败');
+            }
+        }
+
+        // 查看项目详情
+        async function viewProjectDetail(projectId) {
+            currentProjectId = projectId;
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}`);
+                const project = await response.json();
+                
+                document.getElementById('project-detail-name').textContent = project.name;
+                document.getElementById('project-detail-duration').textContent = `${project.total_duration.toFixed(2)} 小时`;
+                
+                if (project.actual_hourly_rate) {
+                    document.getElementById('project-detail-hourly-rate').textContent = `¥${project.actual_hourly_rate.toFixed(2)} / 小时`;
+                } else {
+                    document.getElementById('project-detail-hourly-rate').textContent = '暂无数据';
+                }
+                
+                if (project.profit_status) {
+                    const statusElement = document.getElementById('project-detail-profit-status');
+                    statusElement.textContent = project.profit_status;
+                    statusElement.className = 'text-xl font-semibold ' + 
+                        (project.profit_status.includes('盈利') || project.profit_status.includes('超出') ? 'text-green-600' : 'text-red-600');
+                    if (project.profit_amount !== null) {
+                        statusElement.textContent += ` (${project.profit_amount >= 0 ? '+' : ''}¥${project.profit_amount.toFixed(2)})`;
+                    }
+                } else {
+                    document.getElementById('project-detail-profit-status').textContent = '-';
+                    document.getElementById('project-detail-profit-status').className = 'text-xl font-semibold text-gray-900';
+                }
+                
+                // 渲染任务列表
+                renderProjectDetailTasks(project.tasks);
+                
+                // 渲染时间记录
+                renderProjectDetailTimeEntries(project);
+                
+                document.getElementById('project-detail-modal').classList.add('active');
+            } catch (error) {
+                console.error('获取项目详情失败:', error);
+                alert('获取项目详情失败');
+            }
+        }
+
+        // 渲染项目详情中的任务列表
+        function renderProjectDetailTasks(tasks) {
+            const container = document.getElementById('project-detail-tasks');
+            
+            if (tasks.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-4">暂无任务</p>';
+                return;
+            }
+            
+            container.innerHTML = tasks.map(task => {
+                const totalDuration = task.time_entries
+                    .filter(te => !te.is_running)
+                    .reduce((sum, te) => sum + te.duration, 0);
+                
+                const hasRunningTimer = task.time_entries.some(te => te.is_running);
+                
+                return `
+                    <div class="bg-gray-50 rounded-lg p-4 flex justify-between items-center">
+                        <div class="flex items-center">
+                            <button onclick="toggleTaskStatus(${task.id}, ${!task.is_completed})" class="mr-3 ${task.is_completed ? 'text-green-600' : 'text-gray-400'}">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    ${task.is_completed ? 
+                                        '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>' :
+                                        '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>'
+                                    }
+                                </svg>
+                            </button>
+                            <div>
+                                <h5 class="font-medium ${task.is_completed ? 'line-through text-gray-500' : 'text-gray-800'}">${task.title}</h5>
+                                <p class="text-xs text-gray-500">总时长: ${totalDuration.toFixed(2)} 小时</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            ${hasRunningTimer ? 
+                                `<button onclick="stopTaskTimer(${task.id})" class="px-3 py-1 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 timer-pulse">
+                                    停止计时
+                                </button>` :
+                                `<button onclick="startTaskTimer(${task.id})" class="px-3 py-1 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700">
+                                    开始计时
+                                </button>`
+                            }
+                            <button onclick="deleteTask(${task.id})" class="text-red-600 hover:text-red-800">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 渲染项目详情中的时间记录
+        function renderProjectDetailTimeEntries(project) {
+            const tbody = document.getElementById('time-entries-table-body');
+            
+            const allTimeEntries = [];
+            project.tasks.forEach(task => {
+                task.time_entries.forEach(te => {
+                    allTimeEntries.push({
+                        ...te,
+                        task_title: task.title
+                    });
+                });
+            });
+            
+            // 按开始时间排序
+            allTimeEntries.sort((a, b) => new Date(b.start_time) - new Date(a.start_time));
+            
+            if (allTimeEntries.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-4 text-center text-gray-500">暂无时间记录</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = allTimeEntries.map(te => `
+                <tr>
+                    <td class="px-4 py-2 text-sm">${new Date(te.start_time).toLocaleString('zh-CN')}</td>
+                    <td class="px-4 py-2 text-sm">${te.end_time ? new Date(te.end_time).toLocaleString('zh-CN') : '进行中'}</td>
+                    <td class="px-4 py-2 text-sm">${te.is_running ? '计算中' : `${te.duration.toFixed(2)} 小时`}</td>
+                    <td class="px-4 py-2 text-sm">
+                        <span class="px-2 py-1 rounded text-xs font-medium ${te.is_running ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
+                            ${te.is_running ? '运行中' : '已完成'}
+                        </span>
+                    </td>
+                    <td class="px-4 py-2 text-sm text-gray-500">${te.description || '-'}</td>
+                </tr>
+            `).join('');
+        }
+
+        // 切换任务状态
+        async function toggleTaskStatus(taskId, isCompleted) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/tasks/${taskId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ is_completed: isCompleted })
+                });
+                
+                if (response.ok) {
+                    refreshDashboard();
+                    loadProjects();
+                    if (currentProjectId) {
+                        viewProjectDetail(currentProjectId);
+                    }
+                } else {
+                    const error = await response.json();
+                    alert(`更新任务状态失败: ${error.detail}`);
+                }
+            } catch (error) {
+                console.error('更新任务状态失败:', error);
+                alert('更新任务状态失败');
+            }
+        }
+
+        // 删除任务
+        async function deleteTask(taskId) {
+            if (!confirm('确定要删除这个任务吗？相关的时间记录也会被删除。')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/tasks/${taskId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    refreshDashboard();
+                    loadProjects();
+                    loadTasksForTimer();
+                    if (currentProjectId) {
+                        viewProjectDetail(currentProjectId);
+                    }
+                } else {
+                    const error = await response.json();
+                    alert(`删除任务失败: ${error.detail}`);
+                }
+            } catch (error) {
+                console.error('删除任务失败:', error);
+                alert('删除任务失败');
+            }
+        }
+
+        // 开始任务计时
+        async function startTaskTimer(taskId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/timer/start/${taskId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    refreshDashboard();
+                    loadProjects();
+                    loadTasksForTimer();
+                    loadRunningTimers();
+                    if (currentProjectId) {
+                        viewProjectDetail(currentProjectId);
+                    }
+                } else {
+                    const error = await response.json();
+                    alert(`开始计时失败: ${error.detail}`);
+                }
+            } catch (error) {
+                console.error('开始计时失败:', error);
+                alert('开始计时失败');
+            }
+        }
+
+        // 停止任务计时
+        async function stopTaskTimer(taskId) {
+            try {
+                // 首先获取该任务的运行中的计时器
+                const response = await fetch(`${API_BASE_URL}/api/time-entries/?task_id=${taskId}`);
+                const timeEntries = await response.json();
+                
+                const runningEntry = timeEntries.find(te => te.is_running);
+                if (!runningEntry) {
+                    alert('没有找到运行中的计时器');
+                    return;
+                }
+                
+                // 停止计时器
+                const stopResponse = await fetch(`${API_BASE_URL}/api/timer/stop/${runningEntry.id}`, {
+                    method: 'PUT'
+                });
+                
+                if (stopResponse.ok) {
+                    refreshDashboard();
+                    loadProjects();
+                    loadTasksForTimer();
+                    loadRunningTimers();
+                    if (currentProjectId) {
+                        viewProjectDetail(currentProjectId);
+                    }
+                } else {
+                    const error = await stopResponse.json();
+                    alert(`停止计时失败: ${error.detail}`);
+                }
+            } catch (error) {
+                console.error('停止计时失败:', error);
+                alert('停止计时失败');
+            }
+        }
+
+        // 通过时间记录ID停止计时器
+        async function stopTimerById(timeEntryId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/timer/stop/${timeEntryId}`, {
+                    method: 'PUT'
+                });
+                
+                if (response.ok) {
+                    refreshDashboard();
+                    loadProjects();
+                    loadTasksForTimer();
+                    loadRunningTimers();
+                } else {
+                    const error = await response.json();
+                    alert(`停止计时失败: ${error.detail}`);
+                }
+            } catch (error) {
+                console.error('停止计时失败:', error);
+                alert('停止计时失败');
+            }
+        }
+
+        // 加载运行中的计时器
+        async function loadRunningTimers() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/timer/running/`);
+                const runningTimers = await response.json();
+                renderRunningTimers(runningTimers);
+            } catch (error) {
+                console.error('加载运行中的计时器失败:', error);
+            }
+        }
+
+        // 渲染运行中的计时器
+        function renderRunningTimers(timers) {
+            const container = document.getElementById('running-timers');
+            
+            if (timers.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-8">暂无运行中的计时器</p>';
+                return;
+            }
+            
+            container.innerHTML = timers.map(timer => {
+                const startTime = new Date(timer.start_time);
+                const elapsed = Math.floor((Date.now() - startTime.getTime()) / 1000);
+                
+                return `
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4" data-timer-id="${timer.id}" data-start-time="${timer.start_time}">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <h4 class="font-semibold text-gray-800 timer-pulse">⏱ 计时中...</h4>
+                                <p class="text-sm text-gray-500">开始时间: ${startTime.toLocaleString('zh-CN')}</p>
+                                <p class="text-lg font-bold text-green-600 mt-1" id="timer-display-${timer.id}">${formatElapsedTime(elapsed)}</p>
+                            </div>
+                            <button onclick="stopTimerById(${timer.id})" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                                停止
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 更新运行中的计时器显示
+        function updateRunningTimersDisplay() {
+            document.querySelectorAll('[data-timer-id]').forEach(timerElement => {
+                const timerId = timerElement.dataset.timerId;
+                const startTime = new Date(timerElement.dataset.startTime);
+                const elapsed = Math.floor((Date.now() - startTime.getTime()) / 1000);
+                
+                const displayElement = document.getElementById(`timer-display-${timerId}`);
+                if (displayElement) {
+                    displayElement.textContent = formatElapsedTime(elapsed);
+                }
+            });
+        }
+
+        // 格式化经过的时间
+        function formatElapsedTime(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        }
+
+        // 加载任务列表用于计时器
+        async function loadTasksForTimer() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/tasks/`);
+                const tasks = await response.json();
+                renderTasksForTimer(tasks);
+            } catch (error) {
+                console.error('加载任务列表失败:', error);
+            }
+        }
+
+        // 渲染任务列表用于计时器
+        function renderTasksForTimer(tasks) {
+            const container = document.getElementById('tasks-for-timer');
+            
+            if (tasks.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-8">暂无任务，请先创建项目和任务</p>';
+                return;
+            }
+            
+            // 按项目分组
+            const tasksByProject = {};
+            tasks.forEach(task => {
+                if (!tasksByProject[task.project_id]) {
+                    tasksByProject[task.project_id] = {
+                        project_name: `项目 #${task.project_id}`,
+                        tasks: []
+                    };
+                }
+                tasksByProject[task.project_id].tasks.push(task);
+            });
+            
+            container.innerHTML = Object.entries(tasksByProject).map(([projectId, data]) => `
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <h4 class="font-semibold text-gray-800 mb-3">${data.project_name}</h4>
+                    <div class="space-y-2">
+                        ${data.tasks.map(task => {
+                            const hasRunningTimer = task.time_entries.some(te => te.is_running);
+                            const totalDuration = task.time_entries
+                                .filter(te => !te.is_running)
+                                .reduce((sum, te) => sum + te.duration, 0);
+                            
+                            return `
+                                <div class="flex justify-between items-center bg-white p-3 rounded-lg">
+                                    <div>
+                                        <p class="font-medium ${task.is_completed ? 'line-through text-gray-500' : 'text-gray-800'}">${task.title}</p>
+                                        <p class="text-xs text-gray-500">累计: ${totalDuration.toFixed(2)} 小时</p>
+                                    </div>
+                                    ${hasRunningTimer ? 
+                                        `<button onclick="stopTaskTimer(${task.id})" class="px-3 py-1 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700">
+                                            停止
+                                        </button>` :
+                                        `<button onclick="startTaskTimer(${task.id})" class="px-3 py-1 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700">
+                                            开始
+                                        </button>`
+                                    }
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 导出项目 PDF
+        function exportProjectPDF() {
+            if (currentProjectId) {
+                window.open(`${API_BASE_URL}/api/projects/${currentProjectId}/pdf/`, '_blank');
+            }
+        }
+
+        // 点击模态框外部关闭
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', function(event) {
+                if (event.target === this) {
+                    this.classList.remove('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
