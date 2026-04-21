@@ -49,17 +49,22 @@ def create_access_token(subject: int, expires_delta: Optional[timedelta] = None)
     else:
         expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     
-    to_encode = {"sub": subject, "exp": expire}
+    to_encode = {"sub": str(subject), "exp": expire}
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
 def decode_access_token(token: str) -> Optional[TokenPayload]:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id: int = payload.get("sub")
+        user_id_str: str = payload.get("sub")
         exp: datetime = payload.get("exp")
         
-        if user_id is None:
+        if user_id_str is None:
+            return None
+        
+        try:
+            user_id = int(user_id_str)
+        except (ValueError, TypeError):
             return None
         
         return TokenPayload(sub=user_id, exp=exp)
