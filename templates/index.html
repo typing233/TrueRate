@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TrueRate - 极简项目管理与财务核算工具</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         .gradient-bg {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -31,167 +32,344 @@
         .modal.active {
             display: flex;
         }
+        .tag-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin: 2px;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            z-index: 50;
+        }
+        .dropdown-menu.active {
+            display: block;
+        }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
-    <!-- 导航栏 -->
-    <nav class="gradient-bg text-white shadow-lg">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0">
-                        <h1 class="text-2xl font-bold">TrueRate</h1>
-                    </div>
-                    <div class="hidden md:block ml-10">
-                        <div class="flex items-baseline space-x-4">
-                            <button onclick="showSection('dashboard')" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-white bg-white bg-opacity-20">仪表盘</button>
-                            <button onclick="showSection('projects')" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-white hover:bg-white hover:bg-opacity-20">项目管理</button>
-                            <button onclick="showSection('timers')" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-white hover:bg-white hover:bg-opacity-20">计时器</button>
-                        </div>
-                    </div>
-                </div>
+    <!-- 登录/注册页面 -->
+    <div id="auth-page" class="min-h-screen flex items-center justify-center gradient-bg">
+        <div class="bg-white rounded-2xl p-8 max-w-md w-full mx-4 card-shadow">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-gray-800">TrueRate</h1>
+                <p class="text-gray-500 mt-2">极简项目管理与财务核算工具</p>
             </div>
+            
+            <div class="flex mb-6 border-b border-gray-200">
+                <button id="login-tab" onclick="showAuthTab('login')" class="flex-1 py-2 text-center font-medium text-indigo-600 border-b-2 border-indigo-600">
+                    登录
+                </button>
+                <button id="register-tab" onclick="showAuthTab('register')" class="flex-1 py-2 text-center font-medium text-gray-500 hover:text-gray-700">
+                    注册
+                </button>
+            </div>
+            
+            <form id="login-form" onsubmit="handleLogin(event)">
+                <div class="mb-4">
+                    <label for="login-username" class="block text-sm font-medium text-gray-700 mb-2">用户名</label>
+                    <input type="text" id="login-username" name="username" required 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div class="mb-6">
+                    <label for="login-password" class="block text-sm font-medium text-gray-700 mb-2">密码</label>
+                    <input type="password" id="login-password" name="password" required 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <button type="submit" class="w-full py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium transition-colors">
+                    登录
+                </button>
+            </form>
+            
+            <form id="register-form" class="hidden" onsubmit="handleRegister(event)">
+                <div class="mb-4">
+                    <label for="register-username" class="block text-sm font-medium text-gray-700 mb-2">用户名 *</label>
+                    <input type="text" id="register-username" name="username" required 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div class="mb-4">
+                    <label for="register-email" class="block text-sm font-medium text-gray-700 mb-2">邮箱 *</label>
+                    <input type="email" id="register-email" name="email" required 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div class="mb-4">
+                    <label for="register-fullname" class="block text-sm font-medium text-gray-700 mb-2">姓名</label>
+                    <input type="text" id="register-fullname" name="full_name" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div class="mb-6">
+                    <label for="register-password" class="block text-sm font-medium text-gray-700 mb-2">密码 *</label>
+                    <input type="password" id="register-password" name="password" required 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <button type="submit" class="w-full py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium transition-colors">
+                    注册
+                </button>
+            </form>
         </div>
-    </nav>
+    </div>
 
-    <!-- 主内容区 -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <!-- 仪表盘部分 -->
-        <section id="dashboard" class="section">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-3xl font-bold text-gray-800">仪表盘</h2>
-                <button onclick="refreshDashboard()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors">
-                    刷新数据
-                </button>
-            </div>
-            
-            <!-- 统计卡片 -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div class="bg-white rounded-lg p-6 card-shadow hover-scale">
+    <!-- 主应用页面 -->
+    <div id="main-app" class="hidden">
+        <nav class="gradient-bg text-white shadow-lg">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-16">
                     <div class="flex items-center">
-                        <div class="p-3 rounded-full bg-indigo-100 text-indigo-600">
-                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-                            </svg>
+                        <div class="flex-shrink-0">
+                            <h1 class="text-2xl font-bold">TrueRate</h1>
                         </div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-500">总项目数</p>
-                            <p id="total-projects" class="text-2xl font-semibold text-gray-900">0</p>
+                        <div class="hidden md:block ml-10">
+                            <div class="flex items-baseline space-x-4">
+                                <button onclick="showSection('dashboard')" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-white bg-white bg-opacity-20">仪表盘</button>
+                                <button onclick="showSection('projects')" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-white hover:bg-white hover:bg-opacity-20">项目管理</button>
+                                <button onclick="showSection('timers')" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-white hover:bg-white hover:bg-opacity-20">计时器</button>
+                                <button onclick="showSection('tags')" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-white hover:bg-white hover:bg-opacity-20">标签管理</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <span id="current-user-name" class="text-sm"></span>
+                        <div class="relative">
+                            <button id="user-menu-btn" onclick="toggleUserMenu()" class="flex items-center space-x-2 hover:bg-white hover:bg-opacity-10 px-3 py-2 rounded-lg">
+                                <div class="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                    </svg>
+                                </div>
+                            </button>
+                            <div id="user-menu" class="dropdown-menu mt-2 w-48 bg-white rounded-lg shadow-lg py-2">
+                                <a href="#" onclick="handleLogout()" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">退出登录</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <section id="dashboard" class="section">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-3xl font-bold text-gray-800">仪表盘</h2>
+                    <div class="flex items-center space-x-4">
+                        <select id="period-selector" onchange="refreshPeriodStats()" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="week">本周</option>
+                            <option value="month">本月</option>
+                            <option value="quarter">本季度</option>
+                            <option value="year">本年</option>
+                            <option value="custom">自定义</option>
+                        </select>
+                        <div id="custom-date-range" class="hidden flex items-center space-x-2">
+                            <input type="date" id="custom-start-date" class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <span class="text-gray-500">至</span>
+                            <input type="date" id="custom-end-date" class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <button onclick="refreshPeriodStats()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                                查询
+                            </button>
+                        </div>
+                        <button onclick="refreshDashboard()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors">
+                            刷新数据
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="period-summary" class="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg p-6 mb-8 text-white card-shadow">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                        <div>
+                            <p class="text-sm text-indigo-200">周期总时长</p>
+                            <p id="period-duration" class="text-2xl font-bold">0 小时</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-indigo-200">周期总收款</p>
+                            <p id="period-received" class="text-2xl font-bold">¥0</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-indigo-200">周期时薪</p>
+                            <p id="period-hourly-rate" class="text-2xl font-bold">¥0 / 小时</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-indigo-200">周期日期</p>
+                            <p id="period-date-range" class="text-lg font-semibold">-</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white rounded-lg p-6 card-shadow hover-scale">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-indigo-100 text-indigo-600">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-500">总项目数</p>
+                                <p id="total-projects" class="text-2xl font-semibold text-gray-900">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-lg p-6 card-shadow hover-scale">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-green-100 text-green-600">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-500">完成任务/总任务</p>
+                                <p id="tasks-stats" class="text-2xl font-semibold text-gray-900">0/0</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-lg p-6 card-shadow hover-scale">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-yellow-100 text-yellow-600">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-500">总工作时长</p>
+                                <p id="total-duration" class="text-2xl font-semibold text-gray-900">0 小时</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-lg p-6 card-shadow hover-scale">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-red-100 text-red-600">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-500">总收款金额</p>
+                                <p id="total-received" class="text-2xl font-semibold text-gray-900">¥0</p>
+                            </div>
                         </div>
                     </div>
                 </div>
                 
-                <div class="bg-white rounded-lg p-6 card-shadow hover-scale">
-                    <div class="flex items-center">
-                        <div class="p-3 rounded-full bg-green-100 text-green-600">
-                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
+                <div class="bg-white rounded-lg p-6 card-shadow mb-8">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">整体统计</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <p class="text-sm font-medium text-gray-500 mb-2">整体时薪</p>
+                            <p id="overall-hourly-rate" class="text-3xl font-bold text-indigo-600">¥0 / 小时</p>
                         </div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-500">完成任务/总任务</p>
-                            <p id="tasks-stats" class="text-2xl font-semibold text-gray-900">0/0</p>
+                        <div>
+                            <p class="text-sm font-medium text-gray-500 mb-2">运行中的计时器</p>
+                            <p id="running-timers-count" class="text-3xl font-bold text-green-600">0 个</p>
                         </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    <div class="bg-white rounded-lg p-6 card-shadow">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-4">时薪趋势</h3>
+                        <div class="chart-container">
+                            <canvas id="hourly-rate-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-lg p-6 card-shadow">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-4">项目统计</h3>
+                        <div class="chart-container">
+                            <canvas id="project-stats-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg p-6 card-shadow mb-8">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">标签统计</h3>
+                    <div class="chart-container" style="height: 250px;">
+                        <canvas id="tag-stats-chart"></canvas>
                     </div>
                 </div>
                 
-                <div class="bg-white rounded-lg p-6 card-shadow hover-scale">
-                    <div class="flex items-center">
-                        <div class="p-3 rounded-full bg-yellow-100 text-yellow-600">
-                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                <div class="bg-white rounded-lg p-6 card-shadow">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">最近项目</h3>
+                    <div id="recent-projects" class="space-y-4">
+                        <p class="text-gray-500 text-center py-8">暂无项目，请先创建项目</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="projects" class="section hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-3xl font-bold text-gray-800">项目管理</h2>
+                    <div class="flex items-center space-x-4">
+                        <div class="relative">
+                            <select id="filter-tags" multiple onchange="filterProjectsByTags()" 
+                                    class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[200px]">
+                                <option value="">全部标签</option>
+                            </select>
+                        </div>
+                        <button onclick="openCreateProjectModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                             </svg>
-                        </div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-500">总工作时长</p>
-                            <p id="total-duration" class="text-2xl font-semibold text-gray-900">0 小时</p>
-                        </div>
+                            新建项目
+                        </button>
                     </div>
                 </div>
                 
-                <div class="bg-white rounded-lg p-6 card-shadow hover-scale">
-                    <div class="flex items-center">
-                        <div class="p-3 rounded-full bg-red-100 text-red-600">
-                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                        </div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-500">总收款金额</p>
-                            <p id="total-received" class="text-2xl font-semibold text-gray-900">¥0</p>
-                        </div>
+                <div id="projects-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <p class="text-gray-500 text-center py-8 col-span-full">暂无项目，请点击"新建项目"创建您的第一个项目</p>
+                </div>
+            </section>
+
+            <section id="timers" class="section hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-3xl font-bold text-gray-800">计时器</h2>
+                </div>
+                
+                <div class="bg-white rounded-lg p-6 card-shadow mb-8">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">运行中的计时器</h3>
+                    <div id="running-timers" class="space-y-4">
+                        <p class="text-gray-500 text-center py-8">暂无运行中的计时器</p>
                     </div>
                 </div>
-            </div>
-            
-            <!-- 整体时薪 -->
-            <div class="bg-white rounded-lg p-6 card-shadow mb-8">
-                <h3 class="text-xl font-semibold text-gray-800 mb-4">整体统计</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <p class="text-sm font-medium text-gray-500 mb-2">整体时薪</p>
-                        <p id="overall-hourly-rate" class="text-3xl font-bold text-indigo-600">¥0 / 小时</p>
-                    </div>
-                    <div>
-                        <p class="text-sm font-medium text-gray-500 mb-2">运行中的计时器</p>
-                        <p id="running-timers-count" class="text-3xl font-bold text-green-600">0 个</p>
+                
+                <div class="bg-white rounded-lg p-6 card-shadow">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">选择任务开始计时</h3>
+                    <div id="tasks-for-timer" class="space-y-4">
+                        <p class="text-gray-500 text-center py-8">暂无任务，请先创建项目和任务</p>
                     </div>
                 </div>
-            </div>
-            
-            <!-- 最近项目 -->
-            <div class="bg-white rounded-lg p-6 card-shadow">
-                <h3 class="text-xl font-semibold text-gray-800 mb-4">最近项目</h3>
-                <div id="recent-projects" class="space-y-4">
-                    <p class="text-gray-500 text-center py-8">暂无项目，请先创建项目</p>
-                </div>
-            </div>
-        </section>
+            </section>
 
-        <!-- 项目管理部分 -->
-        <section id="projects" class="section hidden">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-3xl font-bold text-gray-800">项目管理</h2>
-                <button onclick="openCreateProjectModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                    </svg>
-                    新建项目
-                </button>
-            </div>
-            
-            <div id="projects-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <p class="text-gray-500 text-center py-8 col-span-full">暂无项目，请点击"新建项目"创建您的第一个项目</p>
-            </div>
-        </section>
-
-        <!-- 计时器部分 -->
-        <section id="timers" class="section hidden">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-3xl font-bold text-gray-800">计时器</h2>
-            </div>
-            
-            <!-- 运行中的计时器 -->
-            <div class="bg-white rounded-lg p-6 card-shadow mb-8">
-                <h3 class="text-xl font-semibold text-gray-800 mb-4">运行中的计时器</h3>
-                <div id="running-timers" class="space-y-4">
-                    <p class="text-gray-500 text-center py-8">暂无运行中的计时器</p>
+            <section id="tags" class="section hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-3xl font-bold text-gray-800">标签管理</h2>
+                    <button onclick="openCreateTagModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        新建标签
+                    </button>
                 </div>
-            </div>
-            
-            <!-- 任务列表 -->
-            <div class="bg-white rounded-lg p-6 card-shadow">
-                <h3 class="text-xl font-semibold text-gray-800 mb-4">选择任务开始计时</h3>
-                <div id="tasks-for-timer" class="space-y-4">
-                    <p class="text-gray-500 text-center py-8">暂无任务，请先创建项目和任务</p>
+                
+                <div id="tags-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <p class="text-gray-500 text-center py-8 col-span-full">暂无标签，点击"新建标签"创建第一个标签</p>
                 </div>
-            </div>
-        </section>
-    </main>
+            </section>
+        </main>
+    </div>
 
-    <!-- 创建项目模态框 -->
     <div id="create-project-modal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50">
-        <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+        <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
             <h3 class="text-2xl font-bold text-gray-800 mb-6">创建新项目</h3>
             <form id="create-project-form" onsubmit="createProject(event)">
                 <div class="mb-4">
@@ -215,9 +393,16 @@
                     </div>
                 </div>
                 
-                <div class="mb-6">
+                <div class="mb-4">
                     <label for="project-received-amount" class="block text-sm font-medium text-gray-700 mb-2">已收款金额 (¥)</label>
                     <input type="number" id="project-received-amount" name="received_amount" min="0" step="0.01" value="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">绑定标签</label>
+                    <div id="create-project-tags" class="flex flex-wrap gap-2">
+                        <p class="text-sm text-gray-500">暂无标签，创建后可绑定</p>
+                    </div>
                 </div>
                 
                 <div class="flex justify-end space-x-3">
@@ -228,9 +413,8 @@
         </div>
     </div>
 
-    <!-- 编辑项目模态框 -->
     <div id="edit-project-modal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50">
-        <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+        <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
             <h3 class="text-2xl font-bold text-gray-800 mb-6">编辑项目</h3>
             <form id="edit-project-form" onsubmit="updateProject(event)">
                 <input type="hidden" id="edit-project-id">
@@ -255,9 +439,15 @@
                     </div>
                 </div>
                 
-                <div class="mb-6">
+                <div class="mb-4">
                     <label for="edit-project-received-amount" class="block text-sm font-medium text-gray-700 mb-2">已收款金额 (¥)</label>
                     <input type="number" id="edit-project-received-amount" name="received_amount" min="0" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">绑定标签</label>
+                    <div id="edit-project-tags" class="flex flex-wrap gap-2">
+                    </div>
                 </div>
                 
                 <div class="flex justify-end space-x-3">
@@ -268,7 +458,6 @@
         </div>
     </div>
 
-    <!-- 创建任务模态框 -->
     <div id="create-task-modal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50">
         <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
             <h3 class="text-2xl font-bold text-gray-800 mb-6">创建新任务</h3>
@@ -292,11 +481,14 @@
         </div>
     </div>
 
-    <!-- 项目详情模态框 -->
     <div id="project-detail-modal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50 overflow-y-auto">
         <div class="bg-white rounded-lg p-8 max-w-4xl w-full mx-4 my-8">
             <div class="flex justify-between items-center mb-6">
-                <h3 id="project-detail-name" class="text-2xl font-bold text-gray-800">项目详情</h3>
+                <div class="flex items-center space-x-3">
+                    <h3 id="project-detail-name" class="text-2xl font-bold text-gray-800">项目详情</h3>
+                    <div id="project-detail-tags" class="flex flex-wrap gap-1">
+                    </div>
+                </div>
                 <div class="flex space-x-2">
                     <button onclick="exportProjectPDF()" class="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center">
                         <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -312,7 +504,6 @@
                 </div>
             </div>
             
-            <!-- 项目统计 -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div class="bg-gray-50 rounded-lg p-4">
                     <p class="text-sm text-gray-500">总工作时长</p>
@@ -328,7 +519,6 @@
                 </div>
             </div>
             
-            <!-- 任务列表 -->
             <div class="mb-6">
                 <div class="flex justify-between items-center mb-4">
                     <h4 class="text-lg font-semibold text-gray-800">任务列表</h4>
@@ -344,7 +534,6 @@
                 </div>
             </div>
             
-            <!-- 时间记录 -->
             <div>
                 <h4 class="text-lg font-semibold text-gray-800 mb-4">时间记录</h4>
                 <div id="project-detail-time-entries" class="overflow-x-auto">
@@ -369,19 +558,511 @@
         </div>
     </div>
 
+    <div id="create-tag-modal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+            <h3 class="text-2xl font-bold text-gray-800 mb-6">创建新标签</h3>
+            <form id="create-tag-form" onsubmit="createTag(event)">
+                <div class="mb-4">
+                    <label for="tag-name" class="block text-sm font-medium text-gray-700 mb-2">标签名称 *</label>
+                    <input type="text" id="tag-name" name="name" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                
+                <div class="mb-4">
+                    <label for="tag-color" class="block text-sm font-medium text-gray-700 mb-2">标签颜色</label>
+                    <div class="flex items-center space-x-3">
+                        <input type="color" id="tag-color" name="color" value="#6366f1" class="w-12 h-10 border border-gray-300 rounded cursor-pointer">
+                        <span id="tag-color-preview" class="text-sm text-gray-500">#6366f1</span>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <label for="tag-description" class="block text-sm font-medium text-gray-700 mb-2">描述</label>
+                    <textarea id="tag-description" name="description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeModal('create-tag-modal')" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">取消</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">创建</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="edit-tag-modal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+            <h3 class="text-2xl font-bold text-gray-800 mb-6">编辑标签</h3>
+            <form id="edit-tag-form" onsubmit="updateTag(event)">
+                <input type="hidden" id="edit-tag-id">
+                <div class="mb-4">
+                    <label for="edit-tag-name" class="block text-sm font-medium text-gray-700 mb-2">标签名称 *</label>
+                    <input type="text" id="edit-tag-name" name="name" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                
+                <div class="mb-4">
+                    <label for="edit-tag-color" class="block text-sm font-medium text-gray-700 mb-2">标签颜色</label>
+                    <div class="flex items-center space-x-3">
+                        <input type="color" id="edit-tag-color" name="color" class="w-12 h-10 border border-gray-300 rounded cursor-pointer">
+                        <span id="edit-tag-color-preview" class="text-sm text-gray-500"></span>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <label for="edit-tag-description" class="block text-sm font-medium text-gray-700 mb-2">描述</label>
+                    <textarea id="edit-tag-description" name="description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeModal('edit-tag-modal')" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">取消</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         const API_BASE_URL = '';
         let currentProjectId = null;
+        let authToken = localStorage.getItem('authToken');
+        let currentUser = null;
+        let allTags = [];
+        let selectedFilterTags = [];
+        let currentEditProjectTagIds = [];
+        let hourlyRateChart = null;
+        let projectStatsChart = null;
+        let tagStatsChart = null;
 
-        // 初始化
-        document.addEventListener('DOMContentLoaded', function() {
-            refreshDashboard();
-            loadProjects();
-            loadTasksForTimer();
-            setInterval(updateRunningTimersDisplay, 1000);
+        function apiFetch(url, options = {}) {
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers
+            };
+            
+            if (authToken) {
+                headers['Authorization'] = `Bearer ${authToken}`;
+            }
+            
+            return fetch(url, {
+                ...options,
+                headers
+            }).then(async (response) => {
+                if (response.status === 401) {
+                    authToken = null;
+                    localStorage.removeItem('authToken');
+                    localStorage.removeItem('currentUser');
+                    showAuthPage();
+                    throw new Error('认证失败，请重新登录');
+                }
+                return response;
+            });
+        }
+
+        function showAuthTab(tab) {
+            const loginTab = document.getElementById('login-tab');
+            const registerTab = document.getElementById('register-tab');
+            const loginForm = document.getElementById('login-form');
+            const registerForm = document.getElementById('register-form');
+
+            if (tab === 'login') {
+                loginTab.classList.add('text-indigo-600', 'border-b-2', 'border-indigo-600');
+                loginTab.classList.remove('text-gray-500');
+                registerTab.classList.remove('text-indigo-600', 'border-b-2', 'border-indigo-600');
+                registerTab.classList.add('text-gray-500');
+                loginForm.classList.remove('hidden');
+                registerForm.classList.add('hidden');
+            } else {
+                registerTab.classList.add('text-indigo-600', 'border-b-2', 'border-indigo-600');
+                registerTab.classList.remove('text-gray-500');
+                loginTab.classList.remove('text-indigo-600', 'border-b-2', 'border-indigo-600');
+                loginTab.classList.add('text-gray-500');
+                registerForm.classList.remove('hidden');
+                loginForm.classList.add('hidden');
+            }
+        }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+            const username = document.getElementById('login-username').value;
+            const password = document.getElementById('login-password').value;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    authToken = data.access_token;
+                    currentUser = data.user;
+                    localStorage.setItem('authToken', authToken);
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    showMainApp();
+                } else {
+                    const error = await response.json();
+                    alert(`登录失败: ${error.detail}`);
+                }
+            } catch (error) {
+                console.error('登录失败:', error);
+                alert('登录失败，请检查网络连接');
+            }
+        }
+
+        async function handleRegister(event) {
+            event.preventDefault();
+            const formData = {
+                username: document.getElementById('register-username').value,
+                email: document.getElementById('register-email').value,
+                full_name: document.getElementById('register-fullname').value || null,
+                password: document.getElementById('register-password').value
+            };
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    authToken = data.access_token;
+                    currentUser = data.user;
+                    localStorage.setItem('authToken', authToken);
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    showMainApp();
+                } else {
+                    const error = await response.json();
+                    alert(`注册失败: ${error.detail}`);
+                }
+            } catch (error) {
+                console.error('注册失败:', error);
+                alert('注册失败，请检查网络连接');
+            }
+        }
+
+        function handleLogout() {
+            authToken = null;
+            currentUser = null;
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('currentUser');
+            showAuthPage();
+        }
+
+        function showAuthPage() {
+            document.getElementById('auth-page').classList.remove('hidden');
+            document.getElementById('main-app').classList.add('hidden');
+            document.getElementById('login-form').reset();
+            document.getElementById('register-form').reset();
+        }
+
+        function showMainApp() {
+            document.getElementById('auth-page').classList.add('hidden');
+            document.getElementById('main-app').classList.remove('hidden');
+            
+            if (currentUser) {
+                document.getElementById('current-user-name').textContent = currentUser.username;
+            }
+
+            initializeApp();
+        }
+
+        function toggleUserMenu() {
+            const menu = document.getElementById('user-menu');
+            menu.classList.toggle('active');
+        }
+
+        document.addEventListener('click', function(event) {
+            const userMenuBtn = document.getElementById('user-menu-btn');
+            const userMenu = document.getElementById('user-menu');
+            
+            if (userMenu && userMenuBtn && 
+                !userMenuBtn.contains(event.target) && 
+                !userMenu.contains(event.target)) {
+                userMenu.classList.remove('active');
+            }
         });
 
-        // 显示不同部分
+        document.getElementById('period-selector').addEventListener('change', function() {
+            const customRange = document.getElementById('custom-date-range');
+            if (this.value === 'custom') {
+                customRange.classList.remove('hidden');
+                const today = new Date();
+                const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+                document.getElementById('custom-start-date').value = firstDay.toISOString().split('T')[0];
+                document.getElementById('custom-end-date').value = today.toISOString().split('T')[0];
+            } else {
+                customRange.classList.add('hidden');
+                refreshPeriodStats();
+            }
+        });
+
+        document.getElementById('tag-color').addEventListener('input', function() {
+            document.getElementById('tag-color-preview').textContent = this.value;
+        });
+
+        document.getElementById('edit-tag-color').addEventListener('input', function() {
+            document.getElementById('edit-tag-color-preview').textContent = this.value;
+        });
+
+        async function initializeApp() {
+            await loadTags();
+            refreshDashboard();
+            refreshPeriodStats();
+            loadProjects();
+            loadTasksForTimer();
+            loadRunningTimers();
+            setInterval(updateRunningTimersDisplay, 1000);
+        }
+
+        async function loadTags() {
+            try {
+                const response = await apiFetch(`${API_BASE_URL}/api/tags/`);
+                if (response.ok) {
+                    allTags = await response.json();
+                    renderTags(allTags);
+                    updateFilterTagsDropdown();
+                    updateProjectTagCheckboxes();
+                }
+            } catch (error) {
+                console.error('加载标签失败:', error);
+            }
+        }
+
+        function renderTags(tags) {
+            const container = document.getElementById('tags-list');
+            
+            if (tags.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-8 col-span-full">暂无标签，点击"新建标签"创建第一个标签</p>';
+                return;
+            }
+            
+            container.innerHTML = tags.map(tag => `
+                <div class="bg-white rounded-lg p-6 card-shadow hover-scale">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 rounded-full" style="background-color: ${tag.color}"></div>
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-800">${tag.name}</h3>
+                                ${tag.description ? `<p class="text-sm text-gray-500">${tag.description}</p>` : ''}
+                            </div>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button onclick="openEditTagModal(${tag.id})" class="text-blue-600 hover:text-blue-800" title="编辑">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                </svg>
+                            </button>
+                            <button onclick="deleteTag(${tag.id})" class="text-red-600 hover:text-red-800" title="删除">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateFilterTagsDropdown() {
+            const select = document.getElementById('filter-tags');
+            if (allTags.length === 0) {
+                select.innerHTML = '<option value="">暂无标签</option>';
+                return;
+            }
+            select.innerHTML = '<option value="">全部标签</option>' + 
+                allTags.map(tag => `<option value="${tag.id}">${tag.name}</option>`).join('');
+        }
+
+        function updateProjectTagCheckboxes() {
+            const createContainer = document.getElementById('create-project-tags');
+            const editContainer = document.getElementById('edit-project-tags');
+            
+            if (allTags.length === 0) {
+                createContainer.innerHTML = '<p class="text-sm text-gray-500">暂无标签</p>';
+                editContainer.innerHTML = '<p class="text-sm text-gray-500">暂无标签</p>';
+                return;
+            }
+
+            createContainer.innerHTML = allTags.map(tag => `
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" value="${tag.id}" class="create-project-tag-checkbox rounded text-indigo-600">
+                    <span class="tag-badge" style="background-color: ${tag.color}20; color: ${tag.color}">
+                        ${tag.name}
+                    </span>
+                </label>
+            `).join('');
+        }
+
+        async function refreshPeriodStats() {
+            const periodType = document.getElementById('period-selector').value;
+            let requestData = { period_type: periodType };
+            
+            if (periodType === 'custom') {
+                const startDate = document.getElementById('custom-start-date').value;
+                const endDate = document.getElementById('custom-end-date').value;
+                if (!startDate || !endDate) {
+                    return;
+                }
+                requestData.start_date = startDate;
+                requestData.end_date = endDate;
+            }
+
+            try {
+                const response = await apiFetch(`${API_BASE_URL}/api/stats/period`, {
+                    method: 'POST',
+                    body: JSON.stringify(requestData)
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    renderPeriodStats(data);
+                    renderCharts(data);
+                }
+            } catch (error) {
+                console.error('获取周期统计失败:', error);
+            }
+        }
+
+        function renderPeriodStats(data) {
+            document.getElementById('period-duration').textContent = `${data.total_duration.toFixed(2)} 小时`;
+            document.getElementById('period-received').textContent = `¥${data.total_received_amount.toFixed(2)}`;
+            
+            if (data.overall_hourly_rate) {
+                document.getElementById('period-hourly-rate').textContent = `¥${data.overall_hourly_rate.toFixed(2)} / 小时`;
+            } else {
+                document.getElementById('period-hourly-rate').textContent = '暂无数据';
+            }
+            
+            document.getElementById('period-date-range').textContent = `${data.start_date} 至 ${data.end_date}`;
+        }
+
+        function renderCharts(data) {
+            const hourlyRateCtx = document.getElementById('hourly-rate-chart').getContext('2d');
+            const projectStatsCtx = document.getElementById('project-stats-chart').getContext('2d');
+            const tagStatsCtx = document.getElementById('tag-stats-chart').getContext('2d');
+
+            if (hourlyRateChart) hourlyRateChart.destroy();
+            if (projectStatsChart) projectStatsChart.destroy();
+            if (tagStatsChart) tagStatsChart.destroy();
+
+            const validTrendData = data.hourly_rate_trend.filter(item => item.total_duration > 0);
+            hourlyRateChart = new Chart(hourlyRateCtx, {
+                type: 'line',
+                data: {
+                    labels: validTrendData.map(item => item.date),
+                    datasets: [{
+                        label: '时薪 (¥/小时)',
+                        data: validTrendData.map(item => item.hourly_rate || 0),
+                        borderColor: '#6366f1',
+                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }, {
+                        label: '工作时长 (小时)',
+                        data: validTrendData.map(item => item.total_duration),
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        fill: false,
+                        tension: 0.4,
+                        yAxisID: 'y1'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: '时薪 (¥/小时)'
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: '时长 (小时)'
+                            },
+                            grid: {
+                                drawOnChartArea: false,
+                            }
+                        }
+                    }
+                }
+            });
+
+            const sortedProjectStats = data.project_stats.sort((a, b) => b.total_duration - a.total_duration);
+            projectStatsChart = new Chart(projectStatsCtx, {
+                type: 'bar',
+                data: {
+                    labels: sortedProjectStats.slice(0, 10).map(item => item.project_name),
+                    datasets: [{
+                        label: '工作时长 (小时)',
+                        data: sortedProjectStats.slice(0, 10).map(item => item.total_duration),
+                        backgroundColor: 'rgba(99, 102, 241, 0.7)',
+                        borderColor: '#6366f1',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: '时长 (小时)'
+                            }
+                        }
+                    }
+                }
+            });
+
+            if (data.tag_stats.length > 0) {
+                tagStatsChart = new Chart(tagStatsCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: data.tag_stats.map(item => item.tag_name),
+                        datasets: [{
+                            data: data.tag_stats.map(item => item.total_duration),
+                            backgroundColor: data.tag_stats.map(item => item.tag_color + 'cc'),
+                            borderColor: data.tag_stats.map(item => item.tag_color),
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'right'
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const item = data.tag_stats[context.dataIndex];
+                                        return `${item.tag_name}: ${item.total_duration.toFixed(2)} 小时, ${item.project_count} 个项目`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
         function showSection(sectionId) {
             document.querySelectorAll('.section').forEach(section => {
                 section.classList.add('hidden');
@@ -397,10 +1078,9 @@
             event.target.classList.add('bg-white', 'bg-opacity-20');
         }
 
-        // 刷新仪表盘
         async function refreshDashboard() {
             try {
-                const response = await fetch(`${API_BASE_URL}/api/dashboard`);
+                const response = await apiFetch(`${API_BASE_URL}/api/dashboard`);
                 const data = await response.json();
                 
                 document.getElementById('total-projects').textContent = data.total_projects;
@@ -414,12 +1094,10 @@
                     document.getElementById('overall-hourly-rate').textContent = '暂无数据';
                 }
                 
-                // 加载运行中的计时器数量
-                const timersResponse = await fetch(`${API_BASE_URL}/api/timer/running/`);
+                const timersResponse = await apiFetch(`${API_BASE_URL}/api/timer/running/`);
                 const runningTimers = await timersResponse.json();
                 document.getElementById('running-timers-count').textContent = `${runningTimers.length} 个`;
                 
-                // 显示最近项目
                 renderRecentProjects(data.recent_projects);
                 
             } catch (error) {
@@ -427,7 +1105,6 @@
             }
         }
 
-        // 渲染最近项目
         function renderRecentProjects(projects) {
             const container = document.getElementById('recent-projects');
             
@@ -439,7 +1116,10 @@
             container.innerHTML = projects.map(project => `
                 <div class="bg-gray-50 rounded-lg p-4 flex justify-between items-center hover-scale">
                     <div>
-                        <h4 class="font-semibold text-gray-800">${project.name}</h4>
+                        <div class="flex items-center space-x-2">
+                            <h4 class="font-semibold text-gray-800">${project.name}</h4>
+                            ${renderProjectTagsBadges(project.tags)}
+                        </div>
                         <p class="text-sm text-gray-500">总时长: ${project.total_duration.toFixed(2)} 小时</p>
                         ${project.actual_hourly_rate ? `<p class="text-sm text-indigo-600">真实时薪: ¥${project.actual_hourly_rate.toFixed(2)}/小时</p>` : ''}
                     </div>
@@ -451,10 +1131,23 @@
             `).join('');
         }
 
-        // 加载项目列表
+        function renderProjectTagsBadges(tags) {
+            if (!tags || tags.length === 0) return '';
+            return tags.map(tag => `
+                <span class="tag-badge" style="background-color: ${tag.color}20; color: ${tag.color}">
+                    ${tag.name}
+                </span>
+            `).join('');
+        }
+
         async function loadProjects() {
             try {
-                const response = await fetch(`${API_BASE_URL}/api/projects/`);
+                let url = `${API_BASE_URL}/api/projects/`;
+                if (selectedFilterTags.length > 0) {
+                    url += `?${selectedFilterTags.map(id => `tag_ids=${id}`).join('&')}`;
+                }
+                
+                const response = await apiFetch(url);
                 const projects = await response.json();
                 renderProjects(projects);
             } catch (error) {
@@ -462,7 +1155,14 @@
             }
         }
 
-        // 渲染项目列表
+        function filterProjectsByTags() {
+            const select = document.getElementById('filter-tags');
+            selectedFilterTags = Array.from(select.selectedOptions)
+                .filter(option => option.value !== '')
+                .map(option => parseInt(option.value));
+            loadProjects();
+        }
+
         function renderProjects(projects) {
             const container = document.getElementById('projects-list');
             
@@ -474,7 +1174,12 @@
             container.innerHTML = projects.map(project => `
                 <div class="bg-white rounded-lg p-6 card-shadow hover-scale">
                     <div class="flex justify-between items-start mb-4">
-                        <h3 class="text-xl font-semibold text-gray-800">${project.name}</h3>
+                        <div>
+                            <h3 class="text-xl font-semibold text-gray-800">${project.name}</h3>
+                            <div class="mt-1">
+                                ${renderProjectTagsBadges(project.tags)}
+                            </div>
+                        </div>
                         <div class="flex space-x-2">
                             <button onclick="viewProjectDetail(${project.id})" class="text-indigo-600 hover:text-indigo-800" title="查看详情">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -541,15 +1246,13 @@
             `).join('');
         }
 
-        // 打开创建项目模态框
         function openCreateProjectModal() {
             document.getElementById('create-project-modal').classList.add('active');
         }
 
-        // 打开编辑项目模态框
         async function openEditProjectModal(projectId) {
             try {
-                const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}`);
+                const response = await apiFetch(`${API_BASE_URL}/api/projects/${projectId}`);
                 const project = await response.json();
                 
                 document.getElementById('edit-project-id').value = project.id;
@@ -559,6 +1262,25 @@
                 document.getElementById('edit-project-hourly-rate').value = project.hourly_rate || '';
                 document.getElementById('edit-project-received-amount').value = project.received_amount;
                 
+                currentEditProjectTagIds = project.tags ? project.tags.map(t => t.id) : [];
+                
+                const editContainer = document.getElementById('edit-project-tags');
+                if (allTags.length === 0) {
+                    editContainer.innerHTML = '<p class="text-sm text-gray-500">暂无标签</p>';
+                } else {
+                    editContainer.innerHTML = allTags.map(tag => {
+                        const isChecked = currentEditProjectTagIds.includes(tag.id);
+                        return `
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" value="${tag.id}" class="edit-project-tag-checkbox rounded text-indigo-600" ${isChecked ? 'checked' : ''}>
+                                <span class="tag-badge" style="background-color: ${tag.color}20; color: ${tag.color}">
+                                    ${tag.name}
+                                </span>
+                            </label>
+                        `;
+                    }).join('');
+                }
+                
                 document.getElementById('edit-project-modal').classList.add('active');
             } catch (error) {
                 console.error('获取项目详情失败:', error);
@@ -566,42 +1288,39 @@
             }
         }
 
-        // 打开创建任务模态框
         function openCreateTaskModal(projectId) {
             document.getElementById('create-task-project-id').value = projectId;
             document.getElementById('create-task-modal').classList.add('active');
         }
 
-        // 为当前项目打开创建任务模态框
         function openCreateTaskForProject() {
             if (currentProjectId) {
                 openCreateTaskModal(currentProjectId);
             }
         }
 
-        // 关闭模态框
         function closeModal(modalId) {
             document.getElementById(modalId).classList.remove('active');
         }
 
-        // 创建项目
         async function createProject(event) {
             event.preventDefault();
+            
+            const selectedTagIds = Array.from(document.querySelectorAll('.create-project-tag-checkbox:checked'))
+                .map(cb => parseInt(cb.value));
             
             const formData = {
                 name: document.getElementById('project-name').value,
                 description: document.getElementById('project-description').value || null,
                 budget: document.getElementById('project-budget').value ? parseFloat(document.getElementById('project-budget').value) : null,
                 hourly_rate: document.getElementById('project-hourly-rate').value ? parseFloat(document.getElementById('project-hourly-rate').value) : null,
-                received_amount: parseFloat(document.getElementById('project-received-amount').value) || 0
+                received_amount: parseFloat(document.getElementById('project-received-amount').value) || 0,
+                tag_ids: selectedTagIds
             };
             
             try {
-                const response = await fetch(`${API_BASE_URL}/api/projects/`, {
+                const response = await apiFetch(`${API_BASE_URL}/api/projects/`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
                     body: JSON.stringify(formData)
                 });
                 
@@ -620,7 +1339,6 @@
             }
         }
 
-        // 更新项目
         async function updateProject(event) {
             event.preventDefault();
             
@@ -643,15 +1361,20 @@
             formData.received_amount = parseFloat(receivedAmount) || 0;
             
             try {
-                const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}`, {
+                const response = await apiFetch(`${API_BASE_URL}/api/projects/${projectId}`, {
                     method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
                     body: JSON.stringify(formData)
                 });
                 
                 if (response.ok) {
+                    const newTagIds = Array.from(document.querySelectorAll('.edit-project-tag-checkbox:checked'))
+                        .map(cb => parseInt(cb.value));
+                    
+                    await apiFetch(`${API_BASE_URL}/api/projects/${projectId}/tags`, {
+                        method: 'PUT',
+                        body: JSON.stringify({ tag_ids: newTagIds })
+                    });
+                    
                     closeModal('edit-project-modal');
                     refreshDashboard();
                     loadProjects();
@@ -668,14 +1391,13 @@
             }
         }
 
-        // 删除项目
         async function deleteProject(projectId) {
             if (!confirm('确定要删除这个项目吗？相关的任务和时间记录也会被删除。')) {
                 return;
             }
             
             try {
-                const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}`, {
+                const response = await apiFetch(`${API_BASE_URL}/api/projects/${projectId}`, {
                     method: 'DELETE'
                 });
                 
@@ -692,7 +1414,6 @@
             }
         }
 
-        // 创建任务
         async function createTask(event) {
             event.preventDefault();
             
@@ -704,11 +1425,8 @@
             };
             
             try {
-                const response = await fetch(`${API_BASE_URL}/api/tasks/`, {
+                const response = await apiFetch(`${API_BASE_URL}/api/tasks/`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
                     body: JSON.stringify(formData)
                 });
                 
@@ -731,15 +1449,15 @@
             }
         }
 
-        // 查看项目详情
         async function viewProjectDetail(projectId) {
             currentProjectId = projectId;
             
             try {
-                const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}`);
+                const response = await apiFetch(`${API_BASE_URL}/api/projects/${projectId}`);
                 const project = await response.json();
                 
                 document.getElementById('project-detail-name').textContent = project.name;
+                document.getElementById('project-detail-tags').innerHTML = renderProjectTagsBadges(project.tags);
                 document.getElementById('project-detail-duration').textContent = `${project.total_duration.toFixed(2)} 小时`;
                 
                 if (project.actual_hourly_rate) {
@@ -761,10 +1479,7 @@
                     document.getElementById('project-detail-profit-status').className = 'text-xl font-semibold text-gray-900';
                 }
                 
-                // 渲染任务列表
                 renderProjectDetailTasks(project.tasks);
-                
-                // 渲染时间记录
                 renderProjectDetailTimeEntries(project);
                 
                 document.getElementById('project-detail-modal').classList.add('active');
@@ -774,7 +1489,6 @@
             }
         }
 
-        // 渲染项目详情中的任务列表
         function renderProjectDetailTasks(tasks) {
             const container = document.getElementById('project-detail-tasks');
             
@@ -826,7 +1540,6 @@
             }).join('');
         }
 
-        // 渲染项目详情中的时间记录
         function renderProjectDetailTimeEntries(project) {
             const tbody = document.getElementById('time-entries-table-body');
             
@@ -840,7 +1553,6 @@
                 });
             });
             
-            // 按开始时间排序
             allTimeEntries.sort((a, b) => new Date(b.start_time) - new Date(a.start_time));
             
             if (allTimeEntries.length === 0) {
@@ -863,14 +1575,10 @@
             `).join('');
         }
 
-        // 切换任务状态
         async function toggleTaskStatus(taskId, isCompleted) {
             try {
-                const response = await fetch(`${API_BASE_URL}/api/tasks/${taskId}`, {
+                const response = await apiFetch(`${API_BASE_URL}/api/tasks/${taskId}`, {
                     method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
                     body: JSON.stringify({ is_completed: isCompleted })
                 });
                 
@@ -890,14 +1598,13 @@
             }
         }
 
-        // 删除任务
         async function deleteTask(taskId) {
             if (!confirm('确定要删除这个任务吗？相关的时间记录也会被删除。')) {
                 return;
             }
             
             try {
-                const response = await fetch(`${API_BASE_URL}/api/tasks/${taskId}`, {
+                const response = await apiFetch(`${API_BASE_URL}/api/tasks/${taskId}`, {
                     method: 'DELETE'
                 });
                 
@@ -918,14 +1625,10 @@
             }
         }
 
-        // 开始任务计时
         async function startTaskTimer(taskId) {
             try {
-                const response = await fetch(`${API_BASE_URL}/api/timer/start/${taskId}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
+                const response = await apiFetch(`${API_BASE_URL}/api/timer/start/${taskId}`, {
+                    method: 'POST'
                 });
                 
                 if (response.ok) {
@@ -946,11 +1649,9 @@
             }
         }
 
-        // 停止任务计时
         async function stopTaskTimer(taskId) {
             try {
-                // 首先获取该任务的运行中的计时器
-                const response = await fetch(`${API_BASE_URL}/api/time-entries/?task_id=${taskId}`);
+                const response = await apiFetch(`${API_BASE_URL}/api/time-entries/?task_id=${taskId}`);
                 const timeEntries = await response.json();
                 
                 const runningEntry = timeEntries.find(te => te.is_running);
@@ -959,8 +1660,7 @@
                     return;
                 }
                 
-                // 停止计时器
-                const stopResponse = await fetch(`${API_BASE_URL}/api/timer/stop/${runningEntry.id}`, {
+                const stopResponse = await apiFetch(`${API_BASE_URL}/api/timer/stop/${runningEntry.id}`, {
                     method: 'PUT'
                 });
                 
@@ -982,10 +1682,9 @@
             }
         }
 
-        // 通过时间记录ID停止计时器
         async function stopTimerById(timeEntryId) {
             try {
-                const response = await fetch(`${API_BASE_URL}/api/timer/stop/${timeEntryId}`, {
+                const response = await apiFetch(`${API_BASE_URL}/api/timer/stop/${timeEntryId}`, {
                     method: 'PUT'
                 });
                 
@@ -1004,10 +1703,9 @@
             }
         }
 
-        // 加载运行中的计时器
         async function loadRunningTimers() {
             try {
-                const response = await fetch(`${API_BASE_URL}/api/timer/running/`);
+                const response = await apiFetch(`${API_BASE_URL}/api/timer/running/`);
                 const runningTimers = await response.json();
                 renderRunningTimers(runningTimers);
             } catch (error) {
@@ -1015,17 +1713,13 @@
             }
         }
 
-        // 解析 UTC 时间字符串（确保后端返回的时间被正确解析为 UTC 时间）
         function parseUTCTime(timeString) {
-            // 如果已经有时区标记（Z 或 +/-），直接解析
             if (timeString.endsWith('Z') || timeString.includes('+') || (timeString.match(/-/g) || []).length > 2) {
                 return new Date(timeString);
             }
-            // 否则，添加 'Z' 标记明确表示这是 UTC 时间
             return new Date(timeString + 'Z');
         }
 
-        // 格式化本地时间显示（将 UTC 时间转换为本地时间显示）
         function formatLocalTime(utcTimeString) {
             const date = parseUTCTime(utcTimeString);
             return date.toLocaleString('zh-CN', {
@@ -1038,7 +1732,6 @@
             });
         }
 
-        // 渲染运行中的计时器
         function renderRunningTimers(timers) {
             const container = document.getElementById('running-timers');
             
@@ -1068,7 +1761,6 @@
             }).join('');
         }
 
-        // 更新运行中的计时器显示
         function updateRunningTimersDisplay() {
             document.querySelectorAll('[data-timer-id]').forEach(timerElement => {
                 const timerId = timerElement.dataset.timerId;
@@ -1082,7 +1774,6 @@
             });
         }
 
-        // 格式化经过的时间
         function formatElapsedTime(seconds) {
             const hours = Math.floor(seconds / 3600);
             const minutes = Math.floor((seconds % 3600) / 60);
@@ -1090,10 +1781,9 @@
             return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
         }
 
-        // 加载任务列表用于计时器
         async function loadTasksForTimer() {
             try {
-                const response = await fetch(`${API_BASE_URL}/api/tasks/`);
+                const response = await apiFetch(`${API_BASE_URL}/api/tasks/`);
                 const tasks = await response.json();
                 renderTasksForTimer(tasks);
             } catch (error) {
@@ -1101,7 +1791,6 @@
             }
         }
 
-        // 渲染任务列表用于计时器
         function renderTasksForTimer(tasks) {
             const container = document.getElementById('tasks-for-timer');
             
@@ -1110,7 +1799,6 @@
                 return;
             }
             
-            // 按项目分组
             const tasksByProject = {};
             tasks.forEach(task => {
                 if (!tasksByProject[task.project_id]) {
@@ -1154,20 +1842,138 @@
             `).join('');
         }
 
-        // 导出项目 PDF
-        function exportProjectPDF() {
-            if (currentProjectId) {
-                window.open(`${API_BASE_URL}/api/projects/${currentProjectId}/pdf/`, '_blank');
+        function openCreateTagModal() {
+            document.getElementById('create-tag-form').reset();
+            document.getElementById('tag-color').value = '#6366f1';
+            document.getElementById('tag-color-preview').textContent = '#6366f1';
+            document.getElementById('create-tag-modal').classList.add('active');
+        }
+
+        async function openEditTagModal(tagId) {
+            const tag = allTags.find(t => t.id === tagId);
+            if (!tag) return;
+            
+            document.getElementById('edit-tag-id').value = tag.id;
+            document.getElementById('edit-tag-name').value = tag.name;
+            document.getElementById('edit-tag-color').value = tag.color;
+            document.getElementById('edit-tag-color-preview').textContent = tag.color;
+            document.getElementById('edit-tag-description').value = tag.description || '';
+            
+            document.getElementById('edit-tag-modal').classList.add('active');
+        }
+
+        async function createTag(event) {
+            event.preventDefault();
+            
+            const formData = {
+                name: document.getElementById('tag-name').value,
+                color: document.getElementById('tag-color').value,
+                description: document.getElementById('tag-description').value || null
+            };
+            
+            try {
+                const response = await apiFetch(`${API_BASE_URL}/api/tags/`, {
+                    method: 'POST',
+                    body: JSON.stringify(formData)
+                });
+                
+                if (response.ok) {
+                    closeModal('create-tag-modal');
+                    document.getElementById('create-tag-form').reset();
+                    await loadTags();
+                } else {
+                    const error = await response.json();
+                    alert(`创建标签失败: ${error.detail}`);
+                }
+            } catch (error) {
+                console.error('创建标签失败:', error);
+                alert('创建标签失败');
             }
         }
 
-        // 点击模态框外部关闭
+        async function updateTag(event) {
+            event.preventDefault();
+            
+            const tagId = document.getElementById('edit-tag-id').value;
+            const formData = {};
+            
+            const name = document.getElementById('edit-tag-name').value;
+            if (name) formData.name = name;
+            
+            const color = document.getElementById('edit-tag-color').value;
+            formData.color = color;
+            
+            const description = document.getElementById('edit-tag-description').value;
+            formData.description = description || null;
+            
+            try {
+                const response = await apiFetch(`${API_BASE_URL}/api/tags/${tagId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(formData)
+                });
+                
+                if (response.ok) {
+                    closeModal('edit-tag-modal');
+                    await loadTags();
+                } else {
+                    const error = await response.json();
+                    alert(`更新标签失败: ${error.detail}`);
+                }
+            } catch (error) {
+                console.error('更新标签失败:', error);
+                alert('更新标签失败');
+            }
+        }
+
+        async function deleteTag(tagId) {
+            if (!confirm('确定要删除这个标签吗？标签与项目的绑定关系也会被移除。')) {
+                return;
+            }
+            
+            try {
+                const response = await apiFetch(`${API_BASE_URL}/api/tags/${tagId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    await loadTags();
+                    loadProjects();
+                } else {
+                    const error = await response.json();
+                    alert(`删除标签失败: ${error.detail}`);
+                }
+            } catch (error) {
+                console.error('删除标签失败:', error);
+                alert('删除标签失败');
+            }
+        }
+
+        function exportProjectPDF() {
+            if (currentProjectId) {
+                const token = encodeURIComponent(authToken);
+                window.open(`${API_BASE_URL}/api/projects/${currentProjectId}/pdf/?token=${token}`, '_blank');
+            }
+        }
+
         document.querySelectorAll('.modal').forEach(modal => {
             modal.addEventListener('click', function(event) {
                 if (event.target === this) {
                     this.classList.remove('active');
                 }
             });
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedToken = localStorage.getItem('authToken');
+            const savedUser = localStorage.getItem('currentUser');
+            
+            if (savedToken && savedUser) {
+                authToken = savedToken;
+                currentUser = JSON.parse(savedUser);
+                showMainApp();
+            } else {
+                showAuthPage();
+            }
         });
     </script>
 </body>
